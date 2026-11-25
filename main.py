@@ -28,11 +28,11 @@ def main() -> int:
         print(f"gate fail: word is {len(word)} chars, need 1-99",
               file=sys.stderr)
         return 1
-    if not word.strip():
-        print("gate fail: word is blank", file=sys.stderr)
+    if any(ch.isspace() for ch in word):
+        print("gate fail: word contains whitespace", file=sys.stderr)
         return 1
-    if len(word.split()) != 1:
-        print("gate fail: entry must be exactly one word",
+    if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in word):
+        print("gate fail: word contains a control character",
               file=sys.stderr)
         return 1
     parent = os.path.dirname(OUTPUT_PATH)
@@ -42,8 +42,11 @@ def main() -> int:
         f.write(word)
     with open(OUTPUT_PATH, "r", encoding="utf-8") as f:
         written = f.read()
-    if written != word:
+    if written != word or len(written) != len(word):
         print("gate fail: read-back mismatch", file=sys.stderr)
+        return 1
+    if os.path.getsize(OUTPUT_PATH) != len(word.encode("utf-8")):
+        print("gate fail: output file size mismatch", file=sys.stderr)
         return 1
     print(word)
     print(f"wrote {len(word)} chars to {OUTPUT_PATH}")
